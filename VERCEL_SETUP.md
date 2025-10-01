@@ -20,34 +20,41 @@
 - **Output Directory**: 비워두기 또는 `N/A`
 - **Install Command**: `pip install -r requirements.txt`
 
-### 3. PostgreSQL 데이터베이스 생성 ⭐
+### 3. 환경 변수 (선택사항)
 
-배포하기 **전에** 데이터베이스를 먼저 만드세요!
+필요하다면 추가:
+- `DEBUG`: `False`
+- `APP_NAME`: `ETFolio`
 
-1. Vercel 대시보드에서 **Storage** 탭
-2. **Create Database** 클릭
-3. **Postgres** 선택
-4. 데이터베이스 이름: `etfolio-db` (또는 원하는 이름)
-5. **Create** 클릭
+### 4. 먼저 배포하기
+**Deploy** 버튼 클릭! 🚀
 
-### 4. 환경 변수 자동 연결
+일단 SQLite로 배포됩니다. 배포 완료 후 PostgreSQL을 추가하면 자동으로 전환됩니다.
+
+### 5. 배포 후 PostgreSQL 추가 ⭐
+
+배포가 완료되면:
+
+1. Vercel 대시보드 → 방금 만든 프로젝트 클릭
+2. 상단 탭에서 **Storage** 클릭
+3. **Create Database** 클릭
+4. **Postgres** 선택
+5. 데이터베이스 이름: `etfolio-db` (또는 원하는 이름)
+6. Region: **Seoul (icn1)** 선택 (한국 서버)
+7. **Create** 클릭
+
+### 6. 환경 변수 자동 연결
 
 PostgreSQL을 생성하면 Vercel이 자동으로 다음 환경 변수를 설정합니다:
-- `POSTGRES_URL`
+- `POSTGRES_URL` ← 우리 코드가 이걸 감지!
 - `POSTGRES_PRISMA_URL`
 - `POSTGRES_URL_NON_POOLING`
 - 기타 PostgreSQL 관련 변수들
 
-우리 코드는 **`POSTGRES_URL`**을 자동으로 감지하고 사용합니다!
+### 7. 자동으로 재배포
 
-### 5. 추가 환경 변수 (선택사항)
-
-필요하다면 수동으로 추가:
-- `DEBUG`: `False`
-- `APP_NAME`: `ETFolio`
-
-### 6. 배포
-**Deploy** 버튼 클릭! 🚀
+PostgreSQL을 연결하면 Vercel이 자동으로 재배포합니다.
+다음 배포부터는 PostgreSQL을 사용하게 됩니다! ✨
 
 ---
 
@@ -105,12 +112,13 @@ POSTGRES_URL=postgresql://user:password@localhost:5432/etfolio
 ## 📝 요약
 
 ### Vercel 배포 순서
-1. ✅ Storage에서 PostgreSQL 생성
-2. ✅ GitHub 레포 연결
-3. ✅ Framework: FastAPI
-4. ✅ Install Command: `pip install -r requirements.txt`
-5. ✅ Build/Output: 비우기
-6. ✅ Deploy 클릭
+1. ✅ GitHub 레포 연결
+2. ✅ Framework: FastAPI
+3. ✅ Install Command: `pip install -r requirements.txt`
+4. ✅ Build/Output: 비우기
+5. ✅ Deploy 클릭 (일단 SQLite로 배포됨)
+6. ✅ 배포 후 대시보드 → Storage → PostgreSQL 추가
+7. ✅ 자동 재배포 → PostgreSQL 사용!
 
-끝! PostgreSQL은 Vercel이 자동으로 연결해줍니다. 🚀
+끝! 🚀
 
