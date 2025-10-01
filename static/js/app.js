@@ -257,11 +257,6 @@ async function showDBInfo() {
                 
                 <h3 style="margin-top: 20px;">연결 URL</h3>
                 <div class="connection-url">${info.connection_url}</div>
-                
-                ${info.database_type === 'PostgreSQL' ? 
-                    '<p style="margin-top: 15px; color: #26DE81;">✨ Vercel PostgreSQL 사용 중!</p>' : 
-                    '<p style="margin-top: 15px; color: #FFA502;">💡 로컬 SQLite 사용 중 (Vercel에서는 PostgreSQL로 자동 전환됩니다)</p>'
-                }
             </div>
         `;
     } catch (error) {
