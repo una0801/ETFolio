@@ -78,6 +78,24 @@
         </footer>
     </div>
 
+    <!-- DB Info Button -->
+    <button class="db-info-btn" onclick="showDBInfo()" title="데이터베이스 정보">
+        🗄️
+    </button>
+
+    <!-- DB Info Modal -->
+    <div id="dbModal" class="modal" onclick="closeModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h2>📊 데이터베이스 연결 정보</h2>
+                <button class="close-btn" onclick="closeDBModal()">×</button>
+            </div>
+            <div id="dbInfoContent">
+                <p>로딩 중...</p>
+            </div>
+        </div>
+    </div>
+
     <script src="/static/js/app.js"></script>
 </body>
 </html>

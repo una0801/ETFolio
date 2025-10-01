@@ -231,3 +231,63 @@ function formatCurrency(value) {
     return new Intl.NumberFormat('ko-KR').format(Math.round(value));
 }
 
+// DB 정보 모달
+async function showDBInfo() {
+    const modal = document.getElementById('dbModal');
+    const content = document.getElementById('dbInfoContent');
+    
+    modal.classList.add('show');
+    content.innerHTML = '<p>로딩 중...</p>';
+    
+    try {
+        const response = await fetch('/api/v1/db-info');
+        const info = await response.json();
+        
+        const dbTypeClass = info.database_type === 'PostgreSQL' ? 'postgres' : 'sqlite';
+        const dbIcon = info.database_type === 'PostgreSQL' ? '🐘' : '🗄️';
+        
+        content.innerHTML = `
+            <div class="db-status">
+                <h3>데이터베이스 타입</h3>
+                <span class="db-type ${dbTypeClass}">
+                    ${dbIcon} ${info.database_type}
+                </span>
+                <p><strong>환경:</strong> ${info.environment}</p>
+                <p><strong>상태:</strong> ${info.status === 'connected' ? '✅ 연결됨' : '❌ 연결 안 됨'}</p>
+                
+                <h3 style="margin-top: 20px;">연결 URL</h3>
+                <div class="connection-url">${info.connection_url}</div>
+                
+                ${info.database_type === 'PostgreSQL' ? 
+                    '<p style="margin-top: 15px; color: #26DE81;">✨ Vercel PostgreSQL 사용 중!</p>' : 
+                    '<p style="margin-top: 15px; color: #FFA502;">💡 로컬 SQLite 사용 중 (Vercel에서는 PostgreSQL로 자동 전환됩니다)</p>'
+                }
+            </div>
+        `;
+    } catch (error) {
+        content.innerHTML = `
+            <div class="db-status">
+                <p style="color: #FC427B;">❌ 데이터베이스 정보를 불러올 수 없습니다.</p>
+                <p>${error.message}</p>
+            </div>
+        `;
+    }
+}
+
+function closeDBModal() {
+    document.getElementById('dbModal').classList.remove('show');
+}
+
+function closeModal(event) {
+    if (event.target.id === 'dbModal') {
+        closeDBModal();
+    }
+}
+
+// ESC 키로 모달 닫기
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closeDBModal();
+    }
+});
+

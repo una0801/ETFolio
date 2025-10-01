@@ -86,3 +86,26 @@ def health_check():
         "version": settings.APP_VERSION
     }
 
+
+@app.get("/api/v1/db-info")
+def get_db_info():
+    """현재 데이터베이스 연결 정보"""
+    from app.core.database import db_url, is_postgres
+    
+    # URL에서 비밀번호 숨기기
+    safe_url = db_url
+    if "@" in db_url:
+        # postgresql://user:password@host:port/db -> postgresql://user:***@host:port/db
+        parts = db_url.split("@")
+        if ":" in parts[0]:
+            user_part = parts[0].split(":")
+            safe_url = f"{user_part[0]}:***@{parts[1]}"
+    
+    return {
+        "database_type": "PostgreSQL" if is_postgres else "SQLite",
+        "is_production": is_postgres,
+        "connection_url": safe_url,
+        "environment": "Production (Vercel)" if is_postgres else "Development (Local)",
+        "status": "connected"
+    }
+
