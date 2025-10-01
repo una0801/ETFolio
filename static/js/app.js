@@ -387,6 +387,150 @@ function closeModal(event) {
     }
 }
 
+// 포트폴리오 상관관계 분석
+async function loadCorrelation() {
+    const period = document.getElementById('correlation-period').value;
+    const scoreDiv = document.getElementById('correlation-score');
+    const heatmapDiv = document.getElementById('correlation-heatmap');
+    
+    scoreDiv.innerHTML = '<p>분석 중...</p>';
+    heatmapDiv.innerHTML = '';
+    
+    try {
+        const response = await fetch(`${API_BASE}/portfolio/correlation?period=${period}`);
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || '상관관계 분석 실패');
+        }
+        
+        const data = await response.json();
+        
+        // 그룹별 결과 표시
+        let scoreHTML = '';
+        let heatmapHTML = '';
+        
+        for (const group of data.groups) {
+            // 비교 대상 없음 메시지
+            if (group.message) {
+                scoreHTML += `
+                    <div style="padding: 25px; background: #0f172a; border-radius: 12px; color: white; margin-bottom: 20px; border: 2px solid #f59e0b;">
+                        <h3 style="margin: 0 0 15px 0; font-size: 1.2em; font-weight: 600; color: #f59e0b;">${group.name}</h3>
+                        <p style="margin: 0; font-size: 1.05em; color: #e2e8f0;">📊 ${group.etf_names[0]}</p>
+                        <p style="margin: 15px 0 0 0; color: #fbbf24; line-height: 1.6;">💡 ${group.message}</p>
+                    </div>
+                `;
+                continue;
+            }
+            
+            // 에러 메시지
+            if (group.error) {
+                scoreHTML += `
+                    <div style="padding: 20px; background: #fee2e2; border-radius: 10px; border-left: 4px solid #ef4444; margin-bottom: 20px;">
+                        <h3 style="margin: 0 0 10px 0; color: #991b1b;">${group.name}</h3>
+                        <p style="margin: 0; color: #7f1d1d;">⚠️ ${group.error}</p>
+                    </div>
+                `;
+                continue;
+            }
+            
+            // 정상 분석 결과
+            const div = group.diversification;
+        
+        // 분산투자 점수 표시
+        const scoreColor = div.diversification_score >= 80 ? '#10b981' :
+                          div.diversification_score >= 60 ? '#3b82f6' :
+                          div.diversification_score >= 40 ? '#f59e0b' :
+                          div.diversification_score >= 20 ? '#f97316' : '#ef4444';
+        
+        let highCorrPairsHTML = '';
+        if (div.high_correlation_pairs.length > 0) {
+            highCorrPairsHTML = `
+                <div style="margin-top: 20px; padding: 18px; background: #1e293b; border-radius: 10px; border-left: 4px solid #f59e0b;">
+                    <strong style="color: #fbbf24; font-size: 1.05em;">⚠️ 높은 상관관계 ETF 쌍 (0.7 이상)</strong>
+                    <ul style="margin: 12px 0; padding-left: 20px; line-height: 1.8; color: #e2e8f0;">
+                        ${div.high_correlation_pairs.map(pair => 
+                            `<li><strong style="color: #f1f5f9;">${pair.etf1} ↔ ${pair.etf2}:</strong> ${(pair.correlation * 100).toFixed(1)}%</li>`
+                        ).join('')}
+                    </ul>
+                    <p style="font-size: 0.95em; color: #fcd34d; margin-top: 10px;">이 ETF들은 거의 같은 방향으로 움직입니다.</p>
+                </div>
+            `;
+        }
+        
+            scoreHTML += `
+            <div style="padding: 25px; background: #0f172a; border-radius: 12px; color: white; margin-bottom: 20px; border: 1px solid #334155;">
+                <h3 style="margin: 0 0 10px 0; font-size: 1.3em; font-weight: 600; color: #f1f5f9;">${group.name}</h3>
+                <p style="margin: 0 0 20px 0; color: #94a3b8; font-size: 0.95em;">${group.etf_count}개 ETF 분석</p>
+                <h4 style="margin: 0 0 15px 0; font-size: 1em; color: #cbd5e1; font-weight: 500;">분산투자 점수</h4>
+                <div style="font-size: 3em; font-weight: bold; margin: 15px 0; color: ${scoreColor}; text-shadow: 2px 2px 4px rgba(0,0,0,0.2);">
+                    ${div.diversification_score}<span style="font-size: 0.5em;">/100</span>
+                </div>
+                <div style="font-size: 1.2em; margin: 10px 0; font-weight: 600;">
+                    ${div.rating}
+                </div>
+                <p style="margin: 15px 0 0 0; line-height: 1.6; opacity: 0.95;">
+                    ${div.advice}
+                </p>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 20px 0;">
+                <div style="padding: 18px; background: #1e293b; border-radius: 10px; border: 1px solid #334155;">
+                    <div style="font-size: 0.85em; color: #94a3b8; margin-bottom: 8px; font-weight: 500;">평균 상관계수</div>
+                    <div style="font-size: 1.6em; font-weight: 700; color: #f1f5f9;">${(div.average_correlation * 100).toFixed(1)}%</div>
+                </div>
+                <div style="padding: 18px; background: #1e293b; border-radius: 10px; border: 1px solid #334155;">
+                    <div style="font-size: 0.85em; color: #94a3b8; margin-bottom: 8px; font-weight: 500;">최대 상관계수</div>
+                    <div style="font-size: 1.6em; font-weight: 700; color: #f1f5f9;">${(div.max_correlation * 100).toFixed(1)}%</div>
+                </div>
+                <div style="padding: 18px; background: #1e293b; border-radius: 10px; border: 1px solid #334155;">
+                    <div style="font-size: 0.85em; color: #94a3b8; margin-bottom: 8px; font-weight: 500;">최소 상관계수</div>
+                    <div style="font-size: 1.6em; font-weight: 700; color: #f1f5f9;">${(div.min_correlation * 100).toFixed(1)}%</div>
+                </div>
+            </div>
+            
+            ${highCorrPairsHTML}
+            
+            <div style="margin-top: 20px; padding: 18px; background: #1e293b; border-radius: 10px; border-left: 4px solid #3b82f6;">
+                <strong style="color: #60a5fa; font-size: 1.05em;">💡 상관계수 이해하기</strong>
+                <ul style="margin: 12px 0; padding-left: 20px; line-height: 2; color: #cbd5e1;">
+                    <li><strong style="color: #f1f5f9;">1.0 (100%):</strong> 완전히 같은 방향 (분산투자 효과 없음)</li>
+                    <li><strong style="color: #f1f5f9;">0.7~0.9:</strong> 매우 높은 상관관계</li>
+                    <li><strong style="color: #f1f5f9;">0.3~0.7:</strong> 중간 상관관계</li>
+                    <li><strong style="color: #f1f5f9;">0.0:</strong> 무관계 (이상적인 분산투자)</li>
+                    <li><strong style="color: #f1f5f9;">-1.0:</strong> 완전 반대 방향 (헤지 효과)</li>
+                </ul>
+            </div>
+        `;
+            
+            // 히트맵 추가
+            heatmapHTML += `<div id="heatmap-${group.name.replace(/\s/g, '-')}" style="margin-bottom: 30px;"></div>`;
+        }
+        
+        // 결과 표시
+        scoreDiv.innerHTML = scoreHTML;
+        heatmapDiv.innerHTML = heatmapHTML;
+        
+        // 각 그룹의 히트맵 렌더링
+        for (const group of data.groups) {
+            if (group.heatmap) {
+                const heatmapId = `heatmap-${group.name.replace(/\s/g, '-')}`;
+                Plotly.newPlot(heatmapId, JSON.parse(group.heatmap).data, JSON.parse(group.heatmap).layout);
+            }
+        }
+        
+        console.log('상관관계 분석 완료:', data);
+        
+    } catch (error) {
+        console.error('상관관계 분석 실패:', error);
+        scoreDiv.innerHTML = `<p style="color: #ef4444;">❌ ${error.message}</p>`;
+        
+        if (error.message.includes('최소 2개')) {
+            scoreDiv.innerHTML += `<p style="color: #6b7280;">ETF를 2개 이상 추가한 후 분석해주세요.</p>`;
+        }
+    }
+}
+
 // ESC 키로 모달 닫기
 document.addEventListener('keydown', function(event) {
     if (event.key === 'Escape') {

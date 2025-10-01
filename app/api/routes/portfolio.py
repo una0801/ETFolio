@@ -9,10 +9,14 @@ import asyncio
 from concurrent.futures import ThreadPoolExecutor
 
 from app.core.database import get_db
+from app.core.logging import setup_logger
 from app.models.etf import Holding, ETF
 from app.schemas.etf import HoldingCreate, HoldingResponse, PortfolioSummary
 from app.services.yfinance_service import YFinanceService
 from app.services.chart_service import ChartService
+from app.services.correlation_service import CorrelationService
+
+logger = setup_logger(__name__)
 
 router = APIRouter(prefix="/portfolio", tags=["Portfolio"])
 
@@ -204,4 +208,135 @@ async def delete_holding(holding_id: int, db: Session = Depends(get_db)):
     )
     
     return {"message": "보유 정보가 삭제되었습니다"}
+
+
+@router.get("/correlation")
+async def get_portfolio_correlation(
+    period: str = "1y",
+    db: Session = Depends(get_db)
+):
+    """
+    포트폴리오 상관관계 분석 (비동기)
+    - 한국 ETF와 미국 ETF를 자동으로 그룹화하여 각각 분석
+    
+    Args:
+        period: 분석 기간 (1mo, 3mo, 6mo, 1y, 2y, 5y)
+    
+    Returns:
+        그룹별 상관관계 분석 결과
+    """
+    logger.info(f"포트폴리오 상관관계 분석 요청: 기간={period}")
+    
+    try:
+        # 등록된 모든 ETF 조회
+        etfs = await asyncio.to_thread(lambda: db.query(ETF).all())
+        
+        if len(etfs) == 0:
+            raise HTTPException(
+                status_code=400,
+                detail="등록된 ETF가 없습니다. ETF를 추가해주세요."
+            )
+        
+        # 한국 ETF와 미국 ETF 분리
+        korean_etfs = [etf for etf in etfs if etf.ticker.endswith('.KS') or etf.ticker.endswith('.KQ')]
+        us_etfs = [etf for etf in etfs if not (etf.ticker.endswith('.KS') or etf.ticker.endswith('.KQ'))]
+        
+        logger.info(f"분석 대상: 한국 {len(korean_etfs)}개, 미국 {len(us_etfs)}개")
+        
+        results = {
+            "groups": [],
+            "total_etfs": len(etfs),
+            "period": period
+        }
+        
+        # 한국 ETF 분석
+        if len(korean_etfs) >= 2:
+            korean_tickers = [etf.ticker for etf in korean_etfs]
+            try:
+                correlation_matrix, metadata = await CorrelationService.calculate_correlation_matrix(
+                    korean_tickers, period
+                )
+                diversification = CorrelationService.analyze_diversification(correlation_matrix)
+                heatmap = CorrelationService.create_correlation_heatmap(
+                    correlation_matrix,
+                    title=f"한국 ETF 상관관계 ({period})"
+                )
+                
+                results["groups"].append({
+                    "name": "한국 ETF",
+                    "etf_count": len(korean_etfs),
+                    "etf_names": [etf.name for etf in korean_etfs],
+                    "correlation_matrix": correlation_matrix.to_dict(),
+                    "heatmap": heatmap,
+                    "diversification": diversification,
+                    "metadata": metadata
+                })
+                logger.info(f"한국 ETF 분석 완료: {len(korean_etfs)}개")
+            except Exception as e:
+                logger.error(f"한국 ETF 분석 실패: {str(e)}")
+                results["groups"].append({
+                    "name": "한국 ETF",
+                    "etf_count": len(korean_etfs),
+                    "error": str(e)
+                })
+        elif len(korean_etfs) == 1:
+            results["groups"].append({
+                "name": "한국 ETF",
+                "etf_count": 1,
+                "etf_names": [korean_etfs[0].name],
+                "message": "비교 대상이 없습니다. 한국 ETF를 1개 더 추가하면 상관관계를 분석할 수 있습니다."
+            })
+        
+        # 미국 ETF 분석
+        if len(us_etfs) >= 2:
+            us_tickers = [etf.ticker for etf in us_etfs]
+            try:
+                correlation_matrix, metadata = await CorrelationService.calculate_correlation_matrix(
+                    us_tickers, period
+                )
+                diversification = CorrelationService.analyze_diversification(correlation_matrix)
+                heatmap = CorrelationService.create_correlation_heatmap(
+                    correlation_matrix,
+                    title=f"미국 ETF 상관관계 ({period})"
+                )
+                
+                results["groups"].append({
+                    "name": "미국 ETF",
+                    "etf_count": len(us_etfs),
+                    "etf_names": [etf.name for etf in us_etfs],
+                    "correlation_matrix": correlation_matrix.to_dict(),
+                    "heatmap": heatmap,
+                    "diversification": diversification,
+                    "metadata": metadata
+                })
+                logger.info(f"미국 ETF 분석 완료: {len(us_etfs)}개")
+            except Exception as e:
+                logger.error(f"미국 ETF 분석 실패: {str(e)}")
+                results["groups"].append({
+                    "name": "미국 ETF",
+                    "etf_count": len(us_etfs),
+                    "error": str(e)
+                })
+        elif len(us_etfs) == 1:
+            results["groups"].append({
+                "name": "미국 ETF",
+                "etf_count": 1,
+                "etf_names": [us_etfs[0].name],
+                "message": "비교 대상이 없습니다. 미국 ETF를 1개 더 추가하면 상관관계를 분석할 수 있습니다."
+            })
+        
+        if len(results["groups"]) == 0:
+            raise HTTPException(
+                status_code=400,
+                detail="분석 가능한 ETF 그룹이 없습니다. 같은 시장의 ETF를 2개 이상 추가해주세요."
+            )
+        
+        logger.info(f"상관관계 분석 완료: {len(results['groups'])}개 그룹")
+        return results
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"상관관계 분석 중 오류: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"상관관계 분석 실패: {str(e)}")
 
