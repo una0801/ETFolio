@@ -65,6 +65,11 @@ header p {
     transition: border-color 0.3s;
 }
 
+.form-group select[size] {
+    min-height: 150px;
+    overflow-y: auto;
+}
+
 .form-group input:focus,
 .form-group select:focus {
     outline: none;
