@@ -15,7 +15,7 @@ from app.schemas.etf import ETFCreate, ETFResponse, ETFAnalytics
 from app.services.yfinance_service import YFinanceService
 from app.services.analytics_service import AnalyticsService
 from app.services.chart_service import ChartService
-from app.data.korean_etfs import ALL_ETFS, KOREAN_ETFS, US_ETFS
+from app.services.etf_list_service import ETFListService
 
 # 로거 설정
 logger = setup_logger(__name__)
@@ -27,35 +27,54 @@ executor = ThreadPoolExecutor(max_workers=10)
 
 
 @router.get("/list")
-async def get_etf_list(category: str = None, search: str = None):
+async def get_etf_list(
+    category: str = None,
+    search: str = None,
+    limit: int = 1000,
+    offset: int = 0,
+    force_refresh: bool = False
+):
     """
-    사용 가능한 ETF 목록 조회
+    사용 가능한 ETF 목록 조회 (실시간 수집, 페이지네이션 지원)
     
     Args:
-        category: 카테고리 필터 (국내주식, 해외주식, 채권 등)
+        category: 카테고리 필터 (한국 ETF, 미국 ETF 등)
         search: 검색어 (이름 또는 티커)
+        limit: 최대 결과 개수
+        offset: 시작 위치 (페이지네이션용)
+        force_refresh: 캐시 무시하고 강제 새로고침
     """
-    logger.info(f"ETF 목록 조회: category={category}, search={search}")
+    logger.info(f"ETF 목록 조회: category={category}, search={search}, limit={limit}, offset={offset}, force_refresh={force_refresh}")
     
-    etfs = ALL_ETFS.copy()
+    try:
+        # 실시간 ETF 목록 수집
+        if search:
+            etfs = await ETFListService.search_etfs(search, limit=5000)  # 검색은 충분히 큰 limit
+        else:
+            etfs = await ETFListService.get_all_etfs(force_refresh=force_refresh)
+        
+        # 카테고리 필터
+        if category:
+            etfs = [etf for etf in etfs if category.lower() in etf.get("category", "").lower()]
+        
+        # 전체 개수 저장
+        total_count = len(etfs)
+        
+        # 페이지네이션 적용
+        etfs = etfs[offset:offset + limit]
+        
+        logger.info(f"ETF 목록 반환: {len(etfs)}개 (전체: {total_count}개, offset: {offset})")
+        return {
+            "etfs": etfs,
+            "total": total_count,
+            "limit": limit,
+            "offset": offset,
+            "has_more": offset + len(etfs) < total_count
+        }
     
-    # 카테고리 필터
-    if category:
-        etfs = [etf for etf in etfs if etf["category"] == category]
-    
-    # 검색 필터
-    if search:
-        search_lower = search.lower()
-        etfs = [
-            etf for etf in etfs 
-            if search_lower in etf["name"].lower() or search_lower in etf["ticker"].lower()
-        ]
-    
-    logger.info(f"ETF 목록 반환: {len(etfs)}개")
-    return {
-        "total": len(etfs),
-        "etfs": etfs
-    }
+    except Exception as e:
+        logger.error(f"ETF 목록 조회 실패: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"ETF 목록 조회 중 오류: {str(e)}")
 
 
 @router.get("/categories")

@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ETFolio - ETF 포트폴리오 트래커</title>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <!-- Choices.js for searchable dropdown -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
@@ -19,17 +22,14 @@
             <section class="card">
                 <h2>ETF 추가하기</h2>
                 <div class="form-group">
-                    <select id="etf-select" onchange="onETFSelect()" style="flex: 2;">
-                        <option value="">ETF 선택 (목록에서 선택)</option>
+                    <select id="etf-select" style="flex: 1;">
+                        <option value="">🔍 ETF 검색 (종목명 또는 티커 입력)...</option>
                     </select>
-                </div>
-                <div class="form-group">
-                    <input type="text" id="ticker-input" placeholder="종목 코드 (예: 069500.KS, SPY)" readonly>
-                    <input type="text" id="name-input" placeholder="ETF 이름" readonly>
-                    <button onclick="addETF()">추가</button>
+                    <button onclick="addETFFromSelect()" style="flex: 0 0 100px;">추가</button>
                 </div>
                 <div class="korean-etf-suggestions">
-                    <p>💡 위 드롭다운에서 ETF를 선택하거나 검색하세요</p>
+                    <p>💡 검색창에 "KODEX", "TIGER", "SPY", "배당" 등 입력하여 검색 가능</p>
+                    <p id="etf-count-info" style="font-size: 0.9em; color: #666;">📊 ETF 목록 로딩 중...</p>
                 </div>
             </section>
 

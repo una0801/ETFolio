@@ -3,28 +3,101 @@
 const API_BASE = '/api/v1';
 
 // 페이지 로드 시 실행
+let choicesInstance = null;
+let allETFs = [];
+
 document.addEventListener('DOMContentLoaded', function() {
     loadETFs();
     loadPortfolioSummary();
     loadETFList();
 });
 
-// 사용 가능한 ETF 목록 로드
-async function loadETFList() {
+// 무한 스크롤용 변수
+let currentOffset = 0;
+let isLoadingMore = false;
+let hasMore = true;
+let totalETFCount = 0;
+
+// 사용 가능한 ETF 목록 로드 (Choices.js 통합 + 무한 스크롤)
+async function loadETFList(reset = false) {
     try {
-        const response = await fetch(`${API_BASE}/etf/list`);
+        if (reset) {
+            currentOffset = 0;
+            allETFs = [];
+            hasMore = true;
+        }
+        
+        if (!hasMore || isLoadingMore) return;
+        
+        isLoadingMore = true;
+        
+        // 한 번에 많이 로드 (1000개)
+        const response = await fetch(`${API_BASE}/etf/list?limit=1000&offset=${currentOffset}`);
         const data = await response.json();
+        
+        // 기존 목록에 추가
+        allETFs = allETFs.concat(data.etfs);
+        totalETFCount = data.total;
+        hasMore = data.has_more;
+        currentOffset += data.etfs.length;
         
         const etfSelect = document.getElementById('etf-select');
         if (!etfSelect) return;
         
-        etfSelect.innerHTML = '<option value="">ETF 선택 (검색 가능)</option>' + 
-            data.etfs.map(etf => 
-                `<option value="${etf.ticker}" data-name="${etf.name}">${etf.name} (${etf.ticker}) - ${etf.category}</option>`
-            ).join('');
+        // 처음 로딩일 때만 Choices.js 초기화
+        if (!choicesInstance) {
+            choicesInstance = new Choices(etfSelect, {
+                searchEnabled: true,
+                searchPlaceholderValue: '종목명 또는 티커 입력...',
+                noResultsText: '검색 결과 없음',
+                noChoicesText: 'ETF 목록 로딩 중...',
+                itemSelectText: '선택하려면 클릭',
+                shouldSort: false,
+                removeItemButton: false,
+                searchFields: ['label', 'value'],
+                fuseOptions: {
+                    includeScore: true,
+                    threshold: 0.3,
+                }
+            });
+        }
+        
+        // ETF 목록을 Choices.js에 추가
+        const choices = data.etfs.map(etf => ({
+            value: etf.ticker,
+            label: `${etf.name} (${etf.ticker}) - ${etf.category}`,
+            customProperties: {
+                name: etf.name,
+                category: etf.category,
+                market: etf.market || 'Unknown'
+            }
+        }));
+        
+        choicesInstance.setChoices(choices, 'value', 'label', false); // false = 기존 항목 유지
+        
+        console.log(`ETF 목록 로딩: ${allETFs.length}/${totalETFCount}개 (더 불러올 수 있음: ${hasMore})`);
+        
+        // 진행 상황 UI 업데이트
+        const countInfo = document.getElementById('etf-count-info');
+        if (countInfo) {
+            if (hasMore) {
+                countInfo.textContent = `📊 ETF 로딩 중... ${allETFs.length}/${totalETFCount}개`;
+            } else {
+                countInfo.textContent = `📊 총 ${totalETFCount}개 ETF 로딩 완료 (한국 ETF 전체 + 미국 주요 ETF)`;
+            }
+        }
+        
+        isLoadingMore = false;
+        
+        // 자동으로 전체 로드 (한국 ETF는 보통 300개 정도라 괜찮음)
+        if (hasMore && allETFs.length < 2000) {
+            setTimeout(() => loadETFList(false), 100); // 연속 로딩
+        }
         
     } catch (error) {
         console.error('ETF 목록 로딩 실패:', error);
+        alert('ETF 목록을 불러올 수 없습니다. 페이지를 새로고침해주세요.');
+        isLoadingMore = false;
     }
 }
 
@@ -63,23 +136,25 @@ async function loadETFs() {
 }
 
 // 셀렉트에서 ETF 선택 시
-function onETFSelect() {
-    const select = document.getElementById('etf-select');
-    const selectedOption = select.options[select.selectedIndex];
-    
-    if (select.value) {
-        document.getElementById('ticker-input').value = select.value;
-        document.getElementById('name-input').value = selectedOption.dataset.name || '';
+// Choices.js에서 선택한 ETF 추가
+async function addETFFromSelect() {
+    if (!choicesInstance) {
+        alert('ETF 목록이 로딩되지 않았습니다.');
+        return;
     }
-}
-
-// ETF 추가
-async function addETF() {
-    const ticker = document.getElementById('ticker-input').value.trim();
-    const name = document.getElementById('name-input').value.trim();
     
-    if (!ticker || !name) {
-        alert('종목 코드와 이름을 모두 입력해주세요.');
+    const selectedValue = choicesInstance.getValue(true);
+    
+    if (!selectedValue) {
+        alert('ETF를 선택해주세요.');
+        return;
+    }
+    
+    // 선택한 ETF 정보 찾기
+    const selectedETF = allETFs.find(etf => etf.ticker === selectedValue);
+    
+    if (!selectedETF) {
+        alert('선택한 ETF 정보를 찾을 수 없습니다.');
         return;
     }
     
@@ -87,21 +162,17 @@ async function addETF() {
         const response = await fetch(`${API_BASE}/etf/`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                ticker: ticker,
-                name: name,
-                market: null,
-                category: null
+                ticker: selectedETF.ticker,
+                name: selectedETF.name
             })
         });
         
         if (response.ok) {
-            alert('ETF가 추가되었습니다!');
-            document.getElementById('ticker-input').value = '';
-            document.getElementById('name-input').value = '';
-            document.getElementById('etf-select').value = '';
+            alert(`✅ ${selectedETF.name} (${selectedETF.ticker}) 추가 완료!`);
+            choicesInstance.setChoiceByValue(''); // 선택 초기화
             loadETFs();
         } else {
             const error = await response.json();
@@ -109,8 +180,13 @@ async function addETF() {
         }
     } catch (error) {
         console.error('ETF 추가 실패:', error);
-        alert('ETF 추가에 실패했습니다.');
+        alert('ETF 추가 중 오류가 발생했습니다.');
     }
+}
+
+// 레거시 함수 (호환성 유지)
+async function addETF() {
+    await addETFFromSelect();
 }
 
 // ETF 삭제
