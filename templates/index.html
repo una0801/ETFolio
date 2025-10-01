@@ -72,6 +72,27 @@
                 <div id="dividend-chart"></div>
                 <div id="return-chart"></div>
             </section>
+
+            <!-- 포트폴리오 상관관계 분석 -->
+            <section class="card">
+                <h2>📊 포트폴리오 상관관계 분석</h2>
+                <p style="color: #666; font-size: 0.9em; margin-bottom: 15px;">
+                    ETF들이 서로 얼마나 비슷하게 움직이는지 분석합니다. 낮은 상관관계 = 좋은 분산투자
+                </p>
+                <div class="form-group">
+                    <select id="correlation-period">
+                        <option value="1mo">1개월</option>
+                        <option value="3mo">3개월</option>
+                        <option value="6mo">6개월</option>
+                        <option value="1y" selected>1년</option>
+                        <option value="2y">2년</option>
+                        <option value="5y">5년</option>
+                    </select>
+                    <button onclick="loadCorrelation()">상관관계 분석</button>
+                </div>
+                <div id="correlation-score"></div>
+                <div id="correlation-heatmap"></div>
+            </section>
         </main>
 
         <footer>
