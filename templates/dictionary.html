@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>주식 용어사전 - ETFolio</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/dictionary.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 네비게이션 바 -->
+            <nav class="navbar">
+                <div class="nav-brand">
+                    <h1>📈 ETFolio</h1>
+                </div>
+                <div class="nav-links">
+                    <a href="/">대시보드</a>
+                    <a href="/analysis">분석</a>
+                    <a href="/recommendations">추천</a>
+                    <a href="/dictionary" class="active">용어사전</a>
+                </div>
+            </nav>
+
+        <header class="dictionary-header">
+            <h1>📚 주식 용어사전</h1>
+            <p>주식, ETF 관련 용어 모음</p>
+        </header>
+
+        <main>
+            <!-- 검색 바 -->
+            <section class="search-section">
+                <div class="search-box">
+                    <input type="text" id="search-input" placeholder="용어 검색... (예: 물타기, CAGR, 존버)" autocomplete="off">
+                    <button onclick="searchTerms()">🔍 검색</button>
+                </div>
+                <div id="search-results"></div>
+            </section>
+
+            <!-- 카테고리 탭 -->
+            <section class="category-tabs">
+                <button class="category-tab active" onclick="filterCategory('all')">전체</button>
+                <button class="category-tab" onclick="filterCategory('일반 용어')">일반 용어</button>
+                <button class="category-tab" onclick="filterCategory('은어/줄임말')">은어</button>
+                <button class="category-tab" onclick="filterCategory('ETF 용어')">ETF 용어</button>
+                <button class="category-tab" onclick="filterCategory('지표')">지표</button>
+                <button class="category-tab" onclick="filterCategory('트렌드/밈')">밈</button>
+            </section>
+
+            <!-- 용어 리스트 -->
+            <section id="terms-container" class="terms-container">
+                <p>검색하거나 카테고리를 선택해주세요...</p>
+            </section>
+        </main>
+    </div>
+
+    <script src="/static/js/dictionary.js"></script>
+</body>
+</html>
+

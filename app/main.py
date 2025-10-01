@@ -9,7 +9,7 @@ from pathlib import Path
 
 from app.core.config import settings
 from app.core.database import init_db
-from app.api.routes import etf, portfolio
+from app.api.routes import etf, portfolio, dictionary
 
 # FastAPI 앱 생성
 app = FastAPI(
@@ -37,6 +37,7 @@ if static_path.exists():
 # API 라우터 등록
 app.include_router(etf.router, prefix=settings.API_V1_STR)
 app.include_router(portfolio.router, prefix=settings.API_V1_STR)
+app.include_router(dictionary.router, prefix=f"{settings.API_V1_STR}/dictionary", tags=["Dictionary"])
 
 
 @app.on_event("startup")
@@ -75,6 +76,39 @@ async def root():
     </body>
     </html>
     """
+
+
+@app.get("/dictionary", response_class=HTMLResponse)
+async def dictionary_page():
+    """용어사전 페이지"""
+    dictionary_file = templates_path / "dictionary.html"
+    
+    if dictionary_file.exists():
+        return dictionary_file.read_text(encoding='utf-8')
+    
+    return "<h1>용어사전 페이지를 찾을 수 없습니다</h1>"
+
+
+@app.get("/analysis", response_class=HTMLResponse)
+async def analysis_page():
+    """포트폴리오 분석 페이지"""
+    analysis_file = templates_path / "analysis.html"
+    
+    if analysis_file.exists():
+        return analysis_file.read_text(encoding='utf-8')
+    
+    return "<h1>분석 페이지를 찾을 수 없습니다</h1>"
+
+
+@app.get("/recommendations", response_class=HTMLResponse)
+async def recommendations_page():
+    """ETF 추천 페이지"""
+    recommendations_file = templates_path / "recommendations.html"
+    
+    if recommendations_file.exists():
+        return recommendations_file.read_text(encoding='utf-8')
+    
+    return "<h1>추천 페이지를 찾을 수 없습니다</h1>"
 
 
 @app.get("/health")

@@ -9,11 +9,25 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
     <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
     <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/dictionary.css">
 </head>
 <body>
     <div class="container">
-        <header>
-            <h1>📈 ETFolio</h1>
+        <!-- 네비게이션 바 -->
+        <nav class="navbar">
+            <div class="nav-brand">
+                <h1>📈 ETFolio</h1>
+            </div>
+            <div class="nav-links">
+                <a href="/" class="active">대시보드</a>
+                <a href="/analysis">분석</a>
+                <a href="/recommendations">추천</a>
+                <a href="/dictionary">용어사전</a>
+            </div>
+        </nav>
+
+        <header style="margin-top: 20px;">
+            <h1>ETFolio</h1>
             <p>내 ETF 투자 대시보드</p>
         </header>
 
@@ -33,39 +47,6 @@
                 </div>
             </section>
 
-            <!-- 인기 ETF 추천 -->
-            <section class="card">
-                <h2>인기 ETF 추천</h2>
-                <p style="color: #94a3b8; font-size: 0.9em; margin-bottom: 15px;">
-                    주요 ETF들의 성과를 분석하여 카테고리별로 추천합니다 (클릭하여 바로 추가)
-                </p>
-                <div class="form-group">
-                    <select id="recommendation-category">
-                        <option value="korean">한국 ETF</option>
-                        <option value="us">미국 ETF</option>
-                    </select>
-                    <select id="recommendation-period">
-                        <option value="1y">1년</option>
-                        <option value="3y">3년</option>
-                        <option value="5y" selected>5년</option>
-                    </select>
-                    <button onclick="loadRecommendations()">추천 ETF 보기</button>
-                </div>
-                
-                <!-- 추천 탭 -->
-                <div class="recommendation-tabs" id="recommendation-tabs" style="display: none;">
-                    <button class="tab-btn active" onclick="switchRecommendationTab('high_return')">고수익형</button>
-                    <button class="tab-btn" onclick="switchRecommendationTab('stable')">안정형</button>
-                    <button class="tab-btn" onclick="switchRecommendationTab('high_dividend')">고배당형</button>
-                    <button class="tab-btn" onclick="switchRecommendationTab('monthly_investing')">적립식</button>
-                    <button class="tab-btn" onclick="switchRecommendationTab('popular')">인기순</button>
-                    <button class="tab-btn" onclick="switchRecommendationTab('high_aum')">투자유치</button>
-                    <button class="tab-btn" onclick="switchRecommendationTab('balanced')">균형형</button>
-                </div>
-                
-                <div id="recommendations-content"></div>
-            </section>
-
             <!-- 포트폴리오 요약 -->
             <section class="card">
                 <h2>포트폴리오 요약</h2>
@@ -80,51 +61,6 @@
                 <div id="etf-list">
                     <p>로딩 중...</p>
                 </div>
-            </section>
-
-            <!-- 차트 섹션 -->
-            <section class="card">
-                <h2>ETF 분석</h2>
-                <div class="form-group">
-                    <select id="chart-ticker-select">
-                        <option value="">ETF 선택</option>
-                    </select>
-                    <select id="period-select">
-                        <option value="1mo">1개월</option>
-                        <option value="3mo">3개월</option>
-                        <option value="6mo">6개월</option>
-                        <option value="1y" selected>1년</option>
-                        <option value="3y">3년</option>
-                        <option value="5y">5년</option>
-                    </select>
-                    <button onclick="loadCharts()">차트 보기</button>
-                </div>
-                
-                <div id="analytics-info"></div>
-                <div id="price-chart"></div>
-                <div id="dividend-chart"></div>
-                <div id="return-chart"></div>
-            </section>
-
-            <!-- 포트폴리오 상관관계 분석 -->
-            <section class="card">
-                <h2>포트폴리오 상관관계 분석</h2>
-                <p style="color: #666; font-size: 0.9em; margin-bottom: 15px;">
-                    ETF들이 서로 얼마나 비슷하게 움직이는지 분석합니다. 낮은 상관관계 = 좋은 분산투자
-                </p>
-                <div class="form-group">
-                    <select id="correlation-period">
-                        <option value="1mo">1개월</option>
-                        <option value="3mo">3개월</option>
-                        <option value="6mo">6개월</option>
-                        <option value="1y" selected>1년</option>
-                        <option value="2y">2년</option>
-                        <option value="5y">5년</option>
-                    </select>
-                    <button onclick="loadCorrelation()">상관관계 분석</button>
-                </div>
-                <div id="correlation-score"></div>
-                <div id="correlation-heatmap"></div>
             </section>
         </main>
 

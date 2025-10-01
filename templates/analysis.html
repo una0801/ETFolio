@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>포트폴리오 분석 - ETFolio</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/dictionary.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 네비게이션 바 -->
+        <nav class="navbar">
+            <div class="nav-brand">
+                <h1>📈 ETFolio</h1>
+            </div>
+            <div class="nav-links">
+                <a href="/">대시보드</a>
+                <a href="/analysis" class="active">분석</a>
+                <a href="/recommendations">추천</a>
+                <a href="/dictionary">용어사전</a>
+            </div>
+        </nav>
+
+        <header style="margin-top: 20px;">
+            <h1>📊 포트폴리오 분석</h1>
+            <p>내 ETF들의 상관관계와 차트를 확인하세요</p>
+        </header>
+
+        <main>
+            <!-- 포트폴리오 상관관계 분석 -->
+            <section class="card">
+                <h2>📊 포트폴리오 상관관계 분석</h2>
+                <p style="color: #94a3b8; font-size: 0.9em; margin-bottom: 15px;">
+                    ETF들이 서로 얼마나 비슷하게 움직이는지 분석합니다. 낮은 상관관계 = 좋은 분산투자
+                </p>
+                <div class="form-group">
+                    <select id="correlation-period">
+                        <option value="1mo">1개월</option>
+                        <option value="3mo">3개월</option>
+                        <option value="6mo">6개월</option>
+                        <option value="1y" selected>1년</option>
+                        <option value="2y">2년</option>
+                        <option value="5y">5년</option>
+                    </select>
+                    <button onclick="loadCorrelation()">상관관계 분석</button>
+                </div>
+                <div id="correlation-score"></div>
+                <div id="correlation-heatmap"></div>
+            </section>
+
+            <!-- ETF 상세 차트 -->
+            <section class="card">
+                <h2>📈 ETF 상세 차트</h2>
+                <p style="color: #94a3b8; font-size: 0.9em; margin-bottom: 15px;">
+                    개별 ETF의 가격 변동, 배당금, 수익률을 확인하세요
+                </p>
+                <div class="form-group">
+                    <select id="chart-etf-select">
+                        <option value="">ETF 선택...</option>
+                    </select>
+                    <select id="chart-period">
+                        <option value="1mo">1개월</option>
+                        <option value="3mo">3개월</option>
+                        <option value="6mo">6개월</option>
+                        <option value="1y" selected>1년</option>
+                        <option value="2y">2년</option>
+                        <option value="5y">5년</option>
+                    </select>
+                    <button onclick="loadCharts()">차트 보기</button>
+                </div>
+                
+                <div id="etf-analytics"></div>
+                <div id="price-chart"></div>
+                <div id="dividend-chart"></div>
+                <div id="return-chart"></div>
+            </section>
+        </main>
+
+        <!-- DB 정보 버튼 -->
+        <button class="db-info-btn" onclick="showDBInfo()">🗄️</button>
+
+        <!-- DB 정보 모달 -->
+        <div id="dbModal" class="modal" onclick="closeModal(event)">
+            <div class="modal-content">
+                <span class="close" onclick="closeDBModal()">&times;</span>
+                <h2>데이터베이스 연결 정보</h2>
+                <div id="db-info-content">
+                    <p>로딩 중...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+    <script>
+        // 페이지 로드 시 ETF 목록 가져오기
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const response = await fetch(`${API_BASE}/etf/`);
+                const etfs = await response.json();
+                
+                const select = document.getElementById('chart-etf-select');
+                etfs.forEach(etf => {
+                    const option = document.createElement('option');
+                    option.value = etf.ticker;
+                    option.textContent = `${etf.name} (${etf.ticker})`;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('ETF 목록 로딩 실패:', error);
+            }
+        });
+
+        // 차트 로딩
+        async function loadCharts() {
+            const ticker = document.getElementById('chart-etf-select').value;
+            const period = document.getElementById('chart-period').value;
+            
+            if (!ticker) {
+                alert('ETF를 선택해주세요');
+                return;
+            }
+            
+            document.getElementById('etf-analytics').innerHTML = '<p style="color: #94a3b8;">로딩 중...</p>';
+            document.getElementById('price-chart').innerHTML = '';
+            document.getElementById('dividend-chart').innerHTML = '';
+            document.getElementById('return-chart').innerHTML = '';
+            
+            try {
+                // 분석 데이터 가져오기
+                const analyticsResponse = await fetch(`${API_BASE}/etf/${ticker}/analytics?period=${period}`);
+                const analytics = await analyticsResponse.json();
+                
+                // 분석 결과 표시
+                document.getElementById('etf-analytics').innerHTML = `
+                    <div style="background: #0f172a; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+                        <h3 style="color: #f1f5f9; margin-bottom: 15px;">${ticker} 분석 결과</h3>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                            <div style="background: #1e293b; padding: 15px; border-radius: 8px;">
+                                <div style="color: #94a3b8; font-size: 0.85em;">CAGR</div>
+                                <div style="color: ${analytics.cagr >= 0 ? '#10b981' : '#ef4444'}; font-size: 1.5em; font-weight: 700;">
+                                    ${analytics.cagr >= 0 ? '+' : ''}${analytics.cagr.toFixed(2)}%
+                                </div>
+                            </div>
+                            <div style="background: #1e293b; padding: 15px; border-radius: 8px;">
+                                <div style="color: #94a3b8; font-size: 0.85em;">변동성</div>
+                                <div style="color: #f1f5f9; font-size: 1.5em; font-weight: 700;">
+                                    ${analytics.volatility.toFixed(2)}%
+                                </div>
+                            </div>
+                            <div style="background: #1e293b; padding: 15px; border-radius: 8px;">
+                                <div style="color: #94a3b8; font-size: 0.85em;">샤프 비율</div>
+                                <div style="color: #f1f5f9; font-size: 1.5em; font-weight: 700;">
+                                    ${analytics.sharpe_ratio.toFixed(2)}
+                                </div>
+                            </div>
+                            <div style="background: #1e293b; padding: 15px; border-radius: 8px;">
+                                <div style="color: #94a3b8; font-size: 0.85em;">MDD</div>
+                                <div style="color: #ef4444; font-size: 1.5em; font-weight: 700;">
+                                    ${analytics.max_drawdown.toFixed(2)}%
+                                </div>
+                            </div>
+                            <div style="background: #1e293b; padding: 15px; border-radius: 8px;">
+                                <div style="color: #94a3b8; font-size: 0.85em;">배당 수익률</div>
+                                <div style="color: #10b981; font-size: 1.5em; font-weight: 700;">
+                                    ${analytics.dividend_yield.toFixed(2)}%
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // 차트 가져오기
+                const chartsResponse = await fetch(`${API_BASE}/etf/${ticker}/charts?period=${period}`);
+                const charts = await chartsResponse.json();
+                
+                Plotly.newPlot('price-chart', JSON.parse(charts.price_chart).data, JSON.parse(charts.price_chart).layout);
+                Plotly.newPlot('dividend-chart', JSON.parse(charts.dividend_chart).data, JSON.parse(charts.dividend_chart).layout);
+                Plotly.newPlot('return-chart', JSON.parse(charts.return_chart).data, JSON.parse(charts.return_chart).layout);
+                
+            } catch (error) {
+                console.error('차트 로딩 실패:', error);
+                alert('차트를 불러올 수 없습니다: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>
+
