@@ -6,7 +6,27 @@ const API_BASE = '/api/v1';
 document.addEventListener('DOMContentLoaded', function() {
     loadETFs();
     loadPortfolioSummary();
+    loadETFList();
 });
+
+// 사용 가능한 ETF 목록 로드
+async function loadETFList() {
+    try {
+        const response = await fetch(`${API_BASE}/etf/list`);
+        const data = await response.json();
+        
+        const etfSelect = document.getElementById('etf-select');
+        if (!etfSelect) return;
+        
+        etfSelect.innerHTML = '<option value="">ETF 선택 (검색 가능)</option>' + 
+            data.etfs.map(etf => 
+                `<option value="${etf.ticker}" data-name="${etf.name}">${etf.name} (${etf.ticker}) - ${etf.category}</option>`
+            ).join('');
+        
+    } catch (error) {
+        console.error('ETF 목록 로딩 실패:', error);
+    }
+}
 
 // ETF 목록 로드
 async function loadETFs() {
@@ -42,6 +62,17 @@ async function loadETFs() {
     }
 }
 
+// 셀렉트에서 ETF 선택 시
+function onETFSelect() {
+    const select = document.getElementById('etf-select');
+    const selectedOption = select.options[select.selectedIndex];
+    
+    if (select.value) {
+        document.getElementById('ticker-input').value = select.value;
+        document.getElementById('name-input').value = selectedOption.dataset.name || '';
+    }
+}
+
 // ETF 추가
 async function addETF() {
     const ticker = document.getElementById('ticker-input').value.trim();
@@ -70,6 +101,7 @@ async function addETF() {
             alert('ETF가 추가되었습니다!');
             document.getElementById('ticker-input').value = '';
             document.getElementById('name-input').value = '';
+            document.getElementById('etf-select').value = '';
             loadETFs();
         } else {
             const error = await response.json();
