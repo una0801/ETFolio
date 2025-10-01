@@ -100,15 +100,26 @@ class CorrelationService:
         """
         분산투자 정도 분석
         
+        목적:
+            - 포트폴리오가 얼마나 잘 분산되어 있는지 평가
+            - "계란을 한 바구니에 담지 마라"의 정량적 측정
+        
+        분산투자가 중요한 이유:
+            - 한 자산이 폭락해도 다른 자산이 방어
+            - 예: 주식 하락 시 채권 상승 → 전체 손실 완화
+            - 같은 수익률이라도 위험이 낮아짐
+        
         Args:
-            correlation_matrix: 상관관계 매트릭스
+            correlation_matrix: ETF 간 상관관계 매트릭스
         
         Returns:
             분산투자 분석 결과
         """
         logger.info("분산투자 분석 시작")
         
-        # 대각선 제외 (자기 자신과의 상관관계 제외)
+        # ========== 1. 상관관계 통계 계산 ==========
+        # 대각선 제외 (자기 자신과의 상관관계 1.0 제외)
+        # 상삼각 행렬만 추출 (중복 제거)
         mask = np.triu(np.ones_like(correlation_matrix, dtype=bool), k=1)
         correlations = correlation_matrix.where(mask).stack()
         
@@ -116,7 +127,9 @@ class CorrelationService:
         max_correlation = float(correlations.max())
         min_correlation = float(correlations.min())
         
-        # 높은 상관관계 쌍 찾기 (0.7 이상)
+        # ========== 2. 높은 상관관계 쌍 찾기 ==========
+        # 0.7 이상이면 "거의 같이 움직인다"
+        # → 분산투자 효과가 거의 없음
         high_corr_pairs = []
         for i in range(len(correlation_matrix)):
             for j in range(i + 1, len(correlation_matrix)):
@@ -128,9 +141,17 @@ class CorrelationService:
                         "correlation": float(corr_value)
                     })
         
-        # 분산투자 점수 계산 (0~100)
-        # 평균 상관관계가 낮을수록 높은 점수
-        # 0.0 상관관계 = 100점, 1.0 상관관계 = 0점
+        # ========== 3. 분산투자 점수 계산 (0~100) ==========
+        # 공식: (1 - 평균 상관관계) × 100
+        # 
+        # 논리:
+        #   - 평균 상관관계 0.0 → 점수 100 (완벽한 분산)
+        #   - 평균 상관관계 0.5 → 점수 50 (보통)
+        #   - 평균 상관관계 1.0 → 점수 0 (분산 효과 없음)
+        #
+        # 왜 평균을 쓰나?
+        #   - 모든 ETF 쌍의 상관관계를 종합적으로 고려
+        #   - 일부만 높아도 평균에 반영됨
         diversification_score = max(0, min(100, int((1 - avg_correlation) * 100)))
         
         # 평가 및 조언

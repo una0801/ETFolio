@@ -387,6 +387,169 @@ function closeModal(event) {
     }
 }
 
+// 추천 데이터 전역 저장
+let currentRecommendationData = null;
+let currentRecommendationTab = 'high_return';
+
+// 인기 ETF 추천
+async function loadRecommendations() {
+    const category = document.getElementById('recommendation-category').value;
+    const period = document.getElementById('recommendation-period').value;
+    const contentDiv = document.getElementById('recommendations-content');
+    const tabsDiv = document.getElementById('recommendation-tabs');
+    
+    contentDiv.innerHTML = '<p style="color: #94a3b8;">분석 중... (10~20초 소요)</p>';
+    tabsDiv.style.display = 'none';
+    
+    try {
+        const response = await fetch(`${API_BASE}/portfolio/recommendations?category=${category}&period=${period}&limit=5`);
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || '추천 실패');
+        }
+        
+        const data = await response.json();
+        currentRecommendationData = data;
+        
+        // 탭 표시
+        tabsDiv.style.display = 'flex';
+        
+        // 첫 번째 탭 표시
+        switchRecommendationTab('high_return');
+        
+        console.log('ETF 추천 완료:', data);
+        
+    } catch (error) {
+        console.error('ETF 추천 실패:', error);
+        contentDiv.innerHTML = `<p style="color: #ef4444;">추천 실패: ${error.message}</p>`;
+        tabsDiv.style.display = 'none';
+    }
+}
+
+// 추천 탭 전환
+function switchRecommendationTab(tabKey) {
+    if (!currentRecommendationData) return;
+    
+    currentRecommendationTab = tabKey;
+    
+    // 탭 버튼 활성화 상태 변경
+    document.querySelectorAll('.tab-btn').forEach((btn, idx) => {
+        btn.classList.remove('active');
+        // 클릭된 탭 찾기
+        const tabKeys = ['high_return', 'stable', 'high_dividend', 'monthly_investing', 'popular', 'high_aum', 'balanced'];
+        if (tabKeys[idx] === tabKey) {
+            btn.classList.add('active');
+        }
+    });
+    
+    const contentDiv = document.getElementById('recommendations-content');
+    const data = currentRecommendationData;
+    
+    // 탭 정보
+    const tabInfo = {
+        'high_return': { title: '고수익형', icon: '📈', desc: 'CAGR 기준 최고 수익률' },
+        'stable': { title: '안정형', icon: '🛡️', desc: '낮은 변동성 + 높은 샤프 비율' },
+        'high_dividend': { title: '고배당형', icon: '💰', desc: '배당 수익률 기준' },
+        'monthly_investing': { title: '적립식 추천', icon: '📅', desc: '낮은 변동성 + 꾸준한 상승세' },
+        'popular': { title: '인기순', icon: '🔥', desc: '거래량 기준 인기 ETF' },
+        'high_aum': { title: '투자유치 TOP', icon: '💎', desc: '자산총액 기준 대형 ETF' },
+        'balanced': { title: '균형형', icon: '⚖️', desc: '수익률 + 안정성 + 배당 종합' }
+    };
+    
+    const info = tabInfo[tabKey];
+    const etfs = data[tabKey] || [];
+    
+    let html = `
+        <div style="margin: 20px 0 15px 0; padding: 15px; background: #0f172a; border-radius: 8px; border: 1px solid #334155;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                <span style="font-size: 1.5em;">${info.icon}</span>
+                <h3 style="color: #f1f5f9; font-size: 1.2em; margin: 0;">${info.title}</h3>
+            </div>
+            <p style="color: #94a3b8; margin: 0; font-size: 0.9em;">${info.desc}</p>
+            <p style="color: #64748b; margin: 8px 0 0 0; font-size: 0.85em;">
+                ${data.metadata.total_analyzed}개 ETF 분석 완료 | 기간: ${data.metadata.period}
+            </p>
+        </div>
+    `;
+    
+    if (etfs.length === 0) {
+        html += `<p style="color: #94a3b8; text-align: center; padding: 20px;">해당 카테고리에 추천할 ETF가 없습니다.</p>`;
+    } else {
+        html += `<div style="display: grid; gap: 10px;">`;
+        
+        etfs.forEach((etf, index) => {
+            const rank = index + 1;
+            const cagr_color = etf.cagr >= 15 ? '#10b981' : etf.cagr >= 10 ? '#3b82f6' : etf.cagr >= 5 ? '#f59e0b' : '#94a3b8';
+            
+            html += `
+                <div onclick="addRecommendedETF('${etf.ticker}', '${etf.name.replace(/'/g, "\\'")}', ${etf.cagr.toFixed(2)})" 
+                     style="padding: 15px; background: #1e293b; border-radius: 8px; border: 1px solid #334155; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: all 0.2s;"
+                     onmouseover="this.style.background='#0f172a'; this.style.borderColor='#3b82f6';"
+                     onmouseout="this.style.background='#1e293b'; this.style.borderColor='#334155';">
+                    <div style="font-size: 1.5em; font-weight: 700; color: #3b82f6; min-width: 30px;">${rank}</div>
+                    <div style="flex: 1;">
+                        <div style="color: #f1f5f9; font-weight: 600; margin-bottom: 5px;">${etf.name}</div>
+                        <div style="color: #94a3b8; font-size: 0.85em;">${etf.ticker}</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="color: ${cagr_color}; font-size: 1.3em; font-weight: 700; margin-bottom: 3px;">
+                            ${etf.cagr >= 0 ? '+' : ''}${etf.cagr.toFixed(2)}%
+                        </div>
+                        <div style="color: #64748b; font-size: 0.8em;">연평균</div>
+                    </div>
+                    <div style="text-align: right; min-width: 120px;">
+                        <div style="color: #94a3b8; font-size: 0.8em;">샤프: ${etf.sharpe_ratio.toFixed(2)}</div>
+                        <div style="color: #94a3b8; font-size: 0.8em;">변동성: ${etf.volatility.toFixed(1)}%</div>
+                        ${etf.dividend_yield > 0 ? `<div style="color: #94a3b8; font-size: 0.8em;">배당: ${etf.dividend_yield.toFixed(2)}%</div>` : ''}
+                        ${tabKey === 'popular' && etf.avg_volume > 0 ? `<div style="color: #94a3b8; font-size: 0.8em;">거래량: ${(etf.avg_volume / 1000000).toFixed(1)}M</div>` : ''}
+                        ${tabKey === 'high_aum' && etf.total_assets > 0 ? `<div style="color: #94a3b8; font-size: 0.8em;">자산: ${(etf.total_assets / 1000000000).toFixed(1)}B</div>` : ''}
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += `</div>`;
+    }
+    
+    contentDiv.innerHTML = html;
+}
+
+// 추천 ETF 클릭하여 추가
+async function addRecommendedETF(ticker, name, cagr) {
+    if (!confirm(`${name} (${ticker})\n연평균 수익률: ${cagr >= 0 ? '+' : ''}${cagr}%\n\n이 ETF를 추가하시겠습니까?`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_BASE}/etf/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                ticker: ticker,
+                name: name
+            })
+        });
+        
+        if (response.ok) {
+            alert(`✅ ${name} 추가 완료!`);
+            loadETFs();
+        } else {
+            const error = await response.json();
+            if (error.detail && error.detail.includes('이미 등록')) {
+                alert('이미 추가된 ETF입니다.');
+            } else {
+                alert(`오류: ${error.detail}`);
+            }
+        }
+    } catch (error) {
+        console.error('ETF 추가 실패:', error);
+        alert('ETF 추가 중 오류가 발생했습니다.');
+    }
+}
+
 // 포트폴리오 상관관계 분석
 async function loadCorrelation() {
     const period = document.getElementById('correlation-period').value;

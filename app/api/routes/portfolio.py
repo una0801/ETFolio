@@ -15,6 +15,7 @@ from app.schemas.etf import HoldingCreate, HoldingResponse, PortfolioSummary
 from app.services.yfinance_service import YFinanceService
 from app.services.chart_service import ChartService
 from app.services.correlation_service import CorrelationService
+from app.services.recommendation_service import RecommendationService
 
 logger = setup_logger(__name__)
 
@@ -339,4 +340,37 @@ async def get_portfolio_correlation(
     except Exception as e:
         logger.error(f"상관관계 분석 중 오류: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"상관관계 분석 실패: {str(e)}")
+
+
+@router.get("/recommendations")
+async def get_etf_recommendations(
+    category: str = "all",
+    period: str = "5y",
+    limit: int = 5
+):
+    """
+    인기 ETF 추천 (성과 기준)
+    
+    Args:
+        category: 카테고리 필터 (korean, us, all)
+        period: 분석 기간 (1y, 3y, 5y)
+        limit: 카테고리별 추천 개수
+    
+    Returns:
+        카테고리별 추천 ETF 목록
+    """
+    logger.info(f"ETF 추천 요청: category={category}, period={period}, limit={limit}")
+    try:
+        from app.services.recommendation_service import RecommendationService
+        
+        recommendations = await RecommendationService.get_recommended_etfs(
+            category_filter=category,
+            period=period,
+            limit=limit
+        )
+        logger.info(f"ETF 추천 완료: {recommendations['metadata']['total_analyzed']}개 ETF 분석")
+        return recommendations
+    except Exception as e:
+        logger.error(f"ETF 추천 실패: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"ETF 추천 실패: {str(e)}")
 
