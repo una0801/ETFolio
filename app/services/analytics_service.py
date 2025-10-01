@@ -6,6 +6,10 @@ import pandas as pd
 from typing import Dict
 from datetime import datetime
 
+from app.core.logging import setup_logger
+
+logger = setup_logger(__name__)
+
 
 class AnalyticsService:
     """투자 분석 서비스 클래스"""
@@ -119,7 +123,7 @@ class AnalyticsService:
     
     @staticmethod
     def calculate_dividend_yield(
-        dividends: pd.Series, 
+        dividends,  # pd.Series 또는 list
         current_price: float
     ) -> float:
         """
@@ -132,6 +136,10 @@ class AnalyticsService:
         Returns:
             배당 수익률 (%)
         """
+        # dividends가 list이거나 None인 경우 빈 Series로 변환
+        if isinstance(dividends, list) or dividends is None:
+            dividends = pd.Series(dtype=float)
+        
         if dividends.empty or current_price == 0:
             return 0.0
         
@@ -142,24 +150,39 @@ class AnalyticsService:
         total_div = recent_dividends.sum()
         div_yield = (total_div / current_price) * 100
         
-        return div_yield
+        return float(div_yield)
     
     @staticmethod
     def analyze_etf(
         hist: pd.DataFrame,
-        dividends: pd.Series,
+        dividends,  # pd.Series 또는 list
         current_price: float
     ) -> Dict:
         """
         종합 분석 결과 반환
         """
-        return {
-            "total_return": AnalyticsService.calculate_total_return(hist),
-            "cagr": AnalyticsService.calculate_cagr(hist),
-            "volatility": AnalyticsService.calculate_volatility(hist),
-            "sharpe_ratio": AnalyticsService.calculate_sharpe_ratio(hist),
-            "max_drawdown": AnalyticsService.calculate_max_drawdown(hist),
-            "dividend_yield": AnalyticsService.calculate_dividend_yield(dividends, current_price),
-            "total_dividends": dividends.sum() if not dividends.empty else 0.0,
-        }
+        logger.info("ETF 종합 분석 시작")
+        try:
+            # dividends가 list인 경우 빈 Series로 변환
+            if isinstance(dividends, list) or dividends is None:
+                dividends = pd.Series(dtype=float)
+            
+            logger.debug(f"분석 데이터: 가격 {len(hist)}개, 배당 {len(dividends)}개, 현재가 {current_price}")
+            
+            result = {
+                "total_return": AnalyticsService.calculate_total_return(hist),
+                "cagr": AnalyticsService.calculate_cagr(hist),
+                "volatility": AnalyticsService.calculate_volatility(hist),
+                "sharpe_ratio": AnalyticsService.calculate_sharpe_ratio(hist),
+                "max_drawdown": AnalyticsService.calculate_max_drawdown(hist),
+                "dividend_yield": AnalyticsService.calculate_dividend_yield(dividends, current_price),
+                "total_dividends": float(dividends.sum()) if not dividends.empty else 0.0,
+            }
+            
+            logger.info(f"분석 완료: CAGR={result['cagr']:.2f}%, 변동성={result['volatility']:.2f}%")
+            return result
+            
+        except Exception as e:
+            logger.error(f"ETF 분석 중 오류: {str(e)}", exc_info=True)
+            raise
 

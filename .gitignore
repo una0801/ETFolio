@@ -44,6 +44,7 @@ wheels/
 
 # 로그
 *.log
+logs/
 
 # 테스트
 .pytest_cache/

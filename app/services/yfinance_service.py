@@ -6,6 +6,10 @@ import pandas as pd
 from typing import Optional, Dict
 from datetime import datetime, timedelta
 
+from app.core.logging import setup_logger
+
+logger = setup_logger(__name__)
+
 
 class YFinanceService:
     """yfinance 데이터 조회 서비스 클래스"""
@@ -30,19 +34,22 @@ class YFinanceService:
     @staticmethod
     def get_etf_info(ticker: str) -> Optional[Dict]:
         """ETF 기본 정보 조회"""
+        logger.info(f"ETF 정보 조회 시작: {ticker}")
         try:
             etf = yf.Ticker(ticker)
             info = etf.info
             
-            return {
+            result = {
                 "ticker": ticker,
                 "name": info.get("longName", info.get("shortName", ticker)),
                 "category": info.get("category", ""),
                 "currency": info.get("currency", ""),
                 "exchange": info.get("exchange", ""),
             }
+            logger.info(f"ETF 정보 조회 성공: {ticker} - {result['name']}")
+            return result
         except Exception as e:
-            print(f"ETF 정보 조회 실패: {e}")
+            logger.error(f"ETF 정보 조회 실패: {ticker} - {str(e)}", exc_info=True)
             return None
     
     @staticmethod
@@ -61,6 +68,7 @@ class YFinanceService:
             start: 시작일
             end: 종료일
         """
+        logger.info(f"가격 히스토리 조회: {ticker}, period={period}")
         try:
             etf = yf.Ticker(ticker)
             
@@ -69,9 +77,10 @@ class YFinanceService:
             else:
                 hist = etf.history(period=period)
             
+            logger.info(f"가격 히스토리 조회 성공: {ticker}, {len(hist)}개 데이터")
             return hist
         except Exception as e:
-            print(f"가격 히스토리 조회 실패: {e}")
+            logger.error(f"가격 히스토리 조회 실패: {ticker} - {str(e)}", exc_info=True)
             return None
     
     @staticmethod
