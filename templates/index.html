@@ -33,6 +33,39 @@
                 </div>
             </section>
 
+            <!-- 인기 ETF 추천 -->
+            <section class="card">
+                <h2>인기 ETF 추천</h2>
+                <p style="color: #94a3b8; font-size: 0.9em; margin-bottom: 15px;">
+                    주요 ETF들의 성과를 분석하여 카테고리별로 추천합니다 (클릭하여 바로 추가)
+                </p>
+                <div class="form-group">
+                    <select id="recommendation-category">
+                        <option value="korean">한국 ETF</option>
+                        <option value="us">미국 ETF</option>
+                    </select>
+                    <select id="recommendation-period">
+                        <option value="1y">1년</option>
+                        <option value="3y">3년</option>
+                        <option value="5y" selected>5년</option>
+                    </select>
+                    <button onclick="loadRecommendations()">추천 ETF 보기</button>
+                </div>
+                
+                <!-- 추천 탭 -->
+                <div class="recommendation-tabs" id="recommendation-tabs" style="display: none;">
+                    <button class="tab-btn active" onclick="switchRecommendationTab('high_return')">고수익형</button>
+                    <button class="tab-btn" onclick="switchRecommendationTab('stable')">안정형</button>
+                    <button class="tab-btn" onclick="switchRecommendationTab('high_dividend')">고배당형</button>
+                    <button class="tab-btn" onclick="switchRecommendationTab('monthly_investing')">적립식</button>
+                    <button class="tab-btn" onclick="switchRecommendationTab('popular')">인기순</button>
+                    <button class="tab-btn" onclick="switchRecommendationTab('high_aum')">투자유치</button>
+                    <button class="tab-btn" onclick="switchRecommendationTab('balanced')">균형형</button>
+                </div>
+                
+                <div id="recommendations-content"></div>
+            </section>
+
             <!-- 포트폴리오 요약 -->
             <section class="card">
                 <h2>포트폴리오 요약</h2>
@@ -75,7 +108,7 @@
 
             <!-- 포트폴리오 상관관계 분석 -->
             <section class="card">
-                <h2>📊 포트폴리오 상관관계 분석</h2>
+                <h2>포트폴리오 상관관계 분석</h2>
                 <p style="color: #666; font-size: 0.9em; margin-bottom: 15px;">
                     ETF들이 서로 얼마나 비슷하게 움직이는지 분석합니다. 낮은 상관관계 = 좋은 분산투자
                 </p>
