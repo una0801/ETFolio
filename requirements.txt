@@ -1,0 +1,27 @@
+# FastAPI 및 웹 프레임워크
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+python-multipart==0.0.6
+
+# Gunicorn (프로덕션 서버)
+gunicorn==21.2.0
+
+# 데이터베이스
+sqlalchemy==2.0.25
+pydantic==2.5.3
+pydantic-settings==2.1.0
+
+# 데이터 분석
+yfinance==0.2.36
+pandas==2.2.0
+numpy==1.26.3
+
+# 시각화
+plotly==5.18.0
+
+# 유틸리티
+python-dotenv==1.0.0
+
+# 비동기 지원
+aiofiles==23.2.1
+

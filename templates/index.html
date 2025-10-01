@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ETFolio - ETF 포트폴리오 트래커</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📈 ETFolio</h1>
+            <p>내 ETF 투자 대시보드</p>
+        </header>
+
+        <main>
+            <!-- ETF 추가 섹션 -->
+            <section class="card">
+                <h2>ETF 추가하기</h2>
+                <div class="form-group">
+                    <input type="text" id="ticker-input" placeholder="종목 코드 (예: 069500.KS, SPY)">
+                    <input type="text" id="name-input" placeholder="ETF 이름">
+                    <button onclick="addETF()">추가</button>
+                </div>
+                <div class="korean-etf-suggestions">
+                    <p>빠른 추가:</p>
+                    <button onclick="setTicker('069500.KS', 'KODEX 200')">KODEX 200</button>
+                    <button onclick="setTicker('360750.KS', 'KODEX S&P500')">KODEX S&P500</button>
+                    <button onclick="setTicker('458730.KS', 'TIGER 미국배당귀족')">TIGER 미국배당귀족</button>
+                    <button onclick="setTicker('133690.KS', 'TIGER 미국나스닥100')">TIGER 나스닥100</button>
+                </div>
+            </section>
+
+            <!-- 포트폴리오 요약 -->
+            <section class="card">
+                <h2>포트폴리오 요약</h2>
+                <div id="portfolio-summary">
+                    <p>로딩 중...</p>
+                </div>
+            </section>
+
+            <!-- ETF 목록 -->
+            <section class="card">
+                <h2>등록된 ETF</h2>
+                <div id="etf-list">
+                    <p>로딩 중...</p>
+                </div>
+            </section>
+
+            <!-- 차트 섹션 -->
+            <section class="card">
+                <h2>ETF 분석</h2>
+                <div class="form-group">
+                    <select id="chart-ticker-select">
+                        <option value="">ETF 선택</option>
+                    </select>
+                    <select id="period-select">
+                        <option value="1mo">1개월</option>
+                        <option value="3mo">3개월</option>
+                        <option value="6mo">6개월</option>
+                        <option value="1y" selected>1년</option>
+                        <option value="3y">3년</option>
+                        <option value="5y">5년</option>
+                    </select>
+                    <button onclick="loadCharts()">차트 보기</button>
+                </div>
+                
+                <div id="analytics-info"></div>
+                <div id="price-chart"></div>
+                <div id="dividend-chart"></div>
+                <div id="return-chart"></div>
+            </section>
+        </main>
+
+        <footer>
+            <p>ETFolio - Powered by FastAPI & yfinance</p>
+        </footer>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
+
