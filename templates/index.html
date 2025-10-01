@@ -19,16 +19,17 @@
             <section class="card">
                 <h2>ETF 추가하기</h2>
                 <div class="form-group">
-                    <input type="text" id="ticker-input" placeholder="종목 코드 (예: 069500.KS, SPY)">
-                    <input type="text" id="name-input" placeholder="ETF 이름">
+                    <select id="etf-select" onchange="onETFSelect()" style="flex: 2;">
+                        <option value="">ETF 선택 (목록에서 선택)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <input type="text" id="ticker-input" placeholder="종목 코드 (예: 069500.KS, SPY)" readonly>
+                    <input type="text" id="name-input" placeholder="ETF 이름" readonly>
                     <button onclick="addETF()">추가</button>
                 </div>
                 <div class="korean-etf-suggestions">
-                    <p>빠른 추가:</p>
-                    <button onclick="setTicker('069500.KS', 'KODEX 200')">KODEX 200</button>
-                    <button onclick="setTicker('360750.KS', 'KODEX S&P500')">KODEX S&P500</button>
-                    <button onclick="setTicker('458730.KS', 'TIGER 미국배당귀족')">TIGER 미국배당귀족</button>
-                    <button onclick="setTicker('133690.KS', 'TIGER 미국나스닥100')">TIGER 나스닥100</button>
+                    <p>💡 위 드롭다운에서 ETF를 선택하거나 검색하세요</p>
                 </div>
             </section>
 

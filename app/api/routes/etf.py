@@ -15,6 +15,7 @@ from app.schemas.etf import ETFCreate, ETFResponse, ETFAnalytics
 from app.services.yfinance_service import YFinanceService
 from app.services.analytics_service import AnalyticsService
 from app.services.chart_service import ChartService
+from app.data.korean_etfs import ALL_ETFS, KOREAN_ETFS, US_ETFS
 
 # 로거 설정
 logger = setup_logger(__name__)
@@ -23,6 +24,45 @@ router = APIRouter(prefix="/etf", tags=["ETF"])
 
 # ThreadPoolExecutor for blocking I/O operations
 executor = ThreadPoolExecutor(max_workers=10)
+
+
+@router.get("/list")
+async def get_etf_list(category: str = None, search: str = None):
+    """
+    사용 가능한 ETF 목록 조회
+    
+    Args:
+        category: 카테고리 필터 (국내주식, 해외주식, 채권 등)
+        search: 검색어 (이름 또는 티커)
+    """
+    logger.info(f"ETF 목록 조회: category={category}, search={search}")
+    
+    etfs = ALL_ETFS.copy()
+    
+    # 카테고리 필터
+    if category:
+        etfs = [etf for etf in etfs if etf["category"] == category]
+    
+    # 검색 필터
+    if search:
+        search_lower = search.lower()
+        etfs = [
+            etf for etf in etfs 
+            if search_lower in etf["name"].lower() or search_lower in etf["ticker"].lower()
+        ]
+    
+    logger.info(f"ETF 목록 반환: {len(etfs)}개")
+    return {
+        "total": len(etfs),
+        "etfs": etfs
+    }
+
+
+@router.get("/categories")
+async def get_categories():
+    """ETF 카테고리 목록"""
+    categories = list(set(etf["category"] for etf in ALL_ETFS))
+    return {"categories": sorted(categories)}
 
 
 @router.post("/", response_model=ETFResponse)
