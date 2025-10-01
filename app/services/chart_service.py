@@ -42,13 +42,17 @@ class ChartService:
         return fig.to_json()
     
     @staticmethod
-    def create_dividend_chart(dividends: pd.Series, ticker: str) -> Dict:
+    def create_dividend_chart(dividends, ticker: str) -> Dict:
         """
         배당금 차트 생성
         
         Returns:
             Plotly JSON 형식 차트
         """
+        # dividends가 list이거나 None인 경우 빈 Series로 변환
+        if isinstance(dividends, list) or dividends is None:
+            dividends = pd.Series(dtype=float)
+        
         if dividends.empty:
             # 빈 차트 반환
             fig = go.Figure()
